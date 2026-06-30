@@ -87,6 +87,7 @@ system-prompts/            # Extracted system prompt sections (RULES_*)
 
 docs/
   architecture.md          # Full system architecture
+  architecture.html        # Interactive visual diagram of the full architecture
   agent-system.md          # Agent hierarchy, trust model, reviewer/bookmarker
   skill-system.md          # Skill format, search, loading, authoring
   mcp-integration.md       # MCP server patterns, tool call flow
@@ -94,12 +95,29 @@ docs/
   artifact-system.md       # Artifact save/embed/provenance
   biosecurity.md           # Biosecurity screener design
   sqlite-schema.md         # Internal metadata database schema
+  scheduler.md             # Scheduled agent execution (routine_schedules)
+  managed-endpoints.md     # Skill-managed local processes
+  marketplace.md           # External skill sources + license assents
   reuse-guide.md           # How to adapt these patterns for your own agent
+
+drizzle/sqlite/            # 95 Drizzle ORM migration files — authoritative DB schema source
+
+examples/                  # 4 complete real Claude Science sessions with full artifacts
+  crispr_screen/           # Genome-wide kinome CRISPR knockout library design
+  enzyme_engineering/       # IS621 bridge recombinase engineering
+  extremophile/            # NIF3 ancestral sequence reconstruction
+  immunotherapy/           # Sade-Feldman melanoma scRNA-seq analysis
 ```
 
 ## Quick Start — Reuse Guide
 
 See [docs/reuse-guide.md](docs/reuse-guide.md) for a practical walkthrough of adapting this agent/skill/MCP pattern for your own Claude-based application.
+
+## Architecture Diagram
+
+[docs/architecture.html](docs/architecture.html) is a self-contained interactive diagram of the full system — process layout, agent hierarchy, system prompt assembly, kernel architecture, MCP server grid, SQLite schema, compute backends, and the biosecurity/verification pipeline. Open it directly in a browser, or view the hosted copy:
+
+**https://docs-internal.formbio.com/formbio/claude-science-reference/architecture.html**
 
 ## License
 
