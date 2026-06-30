@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Science — Architecture Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090d;--surface:#0c1118;--surface2:#101820;--surface3:#18243a;--border:#1c2a3e;--border2:#283d58;--text:#d4e5f2;--muted:#6585a0;--dim:#2e4260;--teal:#00d4bc;--teal-dim:rgba(0,212,188,.08);--amber:#f0a020;--amber-dim:rgba(240,160,32,.08);--green:#40d068;--green-dim:rgba(64,208,104,.08);--red:#e86060;--red-dim:rgba(232,96,96,.08);--purple:#b070f0;--purple-dim:rgba(176,112,240,.08);--blue:#58a0f8;--blue-dim:rgba(88,160,248,.08);--serif:'Crimson Pro',Georgia,serif;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',system-ui,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-weight:300;line-height:1.6;overflow-x:hidden}
+.layout{display:grid;grid-template-columns:210px 1fr;min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column}
+.sb-head{padding:24px 18px 18px;border-bottom:1px solid var(--border)}
+.sb-eye{font:500 9px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin-bottom:6px}
+.sb-title{font:400 16px/1.3 var(--serif);color:var(--text)}
+.sb-sub{font:400 10px/1 var(--mono);color:var(--muted);margin-top:4px}
+.sb-nav{padding:12px 0;flex:1}
+.nav-sec{padding:8px 18px 2px;font:500 9px/1 var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--dim);margin-top:8px}
+.nav-a{display:block;padding:6px 18px;font:400 11px/1 var(--mono);color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all .15s}
+.nav-a:hover,.nav-a.on{color:var(--teal);border-left-color:var(--teal);background:var(--teal-dim)}
+main{overflow:hidden}
+.pg-head{padding:52px 56px 40px;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.pg-head::before{content:'';position:absolute;top:-100px;right:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(0,212,188,.05) 0,transparent 65%);pointer-events:none}
+.pg-eye{font:500 11px/1 var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--teal);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.pg-eye::before{content:'';width:22px;height:1px;background:var(--teal)}
+.pg-title{font:300 italic 48px/1.1 var(--serif);color:var(--text);margin-bottom:16px}
+.pg-title strong{font-style:normal;font-weight:600}
+.pg-desc{font:300 15px/1.75 var(--sans);color:var(--muted);max-width:620px}
+.stats{display:flex;gap:28px;margin-top:28px;flex-wrap:wrap}
+.stat-v{font:700 22px/1 var(--mono);color:var(--teal)}
+.stat-l{font:400 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-top:3px}
+section{padding:48px 56px;border-bottom:1px solid var(--border)}
+section:last-child{border-bottom:none}
+.sec-n{font:400 11px/1 var(--mono);color:var(--teal);letter-spacing:.1em;margin-bottom:6px}
+.sec-t{font:600 30px/1.2 var(--serif);color:var(--text)}
+.sec-d{margin-top:8px;font:300 15px/1.7 var(--sans);color:var(--muted);max-width:660px}
+.sec-head{margin-bottom:30px}
+code{font:400 12px var(--mono);background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 6px;color:var(--teal)}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:3px;font:500 10px var(--mono);letter-spacing:.05em}
+.t-teal{background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,212,188,.2)}
+.t-amber{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(240,160,32,.2)}
+.t-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(64,208,104,.2)}
+.t-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(232,96,96,.2)}
+.t-purple{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(176,112,240,.2)}
+.t-blue{background:var(--blue-dim);color:var(--blue);border:1px solid rgba(88,160,248,.2)}
+.dw{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.dl{padding:10px 18px;font:400 10px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dl::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:18px 22px}
+.card-t{font:500 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+@keyframes flow{0%{stroke-dashoffset:80}100%{stroke-dashoffset:0}}
+.fl{animation:flow 2.5s linear infinite}
+.fl-s{animation:flow 4s linear infinite}
+/* Grid helpers */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sb-head">
+    <div class="sb-eye">com.anthropic.operon</div>
+    <div class="sb-title">Claude Science Architecture</div>
+    <div class="sb-sub">Reverse-engineered · v0.1.0-dev.20260630</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-sec">Overview</div>
+    <a class="nav-a on" href="#overview">System Overview</a>
+    <div class="nav-sec">Core Systems</div>
+    <a class="nav-a" href="#agents">Agent System</a>
+    <a class="nav-a" href="#prompt">System Prompt</a>
+    <a class="nav-a" href="#kernels">Kernel Architecture</a>
+    <a class="nav-a" href="#skills">Skill System</a>
+    <div class="nav-sec">Data &amp; APIs</div>
+    <a class="nav-a" href="#mcp">MCP Servers</a>
+    <a class="nav-a" href="#schema">SQLite Schema</a>
+    <a class="nav-a" href="#compute">Compute Backends</a>
+    <div class="nav-sec">Safety</div>
+    <a class="nav-a" href="#biosec">Biosecurity</a>
+    <a class="nav-a" href="#verify">Verification</a>
+    <a class="nav-a" href="#trust">Trust Hierarchy</a>
+  </nav>
+</aside>
+
+<main>
+<!-- PAGE HEADER -->
+<div class="pg-head">
+  <div class="pg-eye">Architecture Reference</div>
+  <h1 class="pg-title"><strong>Claude Science</strong><br>System Architecture</h1>
+  <p class="pg-desc">Complete reverse-engineered reference extracted from the Bun-compiled ARM64 binary at <code>~/.claude-science/runtime/</code>. Covers all agent configs, kernels, MCP servers, SQLite schema, compute backends, and safety systems.</p>
+  <div class="stats">
+    <div><div class="stat-v">5</div><div class="stat-l">Agent Types</div></div>
+    <div><div class="stat-v">29</div><div class="stat-l">Built-in Skills</div></div>
+    <div><div class="stat-v">24</div><div class="stat-l">MCP Servers</div></div>
+    <div><div class="stat-v">95</div><div class="stat-l">DB Migrations</div></div>
+    <div><div class="stat-v">9</div><div class="stat-l">GPU Envs</div></div>
+    <div><div class="stat-v">10+</div><div class="stat-l">Biosec Axes</div></div>
+  </div>
+</div>
+
+<!-- ============================== OVERVIEW ============================== -->
+<section id="overview">
+<div class="sec-head">
+  <div class="sec-n">01 — OVERVIEW</div>
+  <h2 class="sec-t">System Overview</h2>
+  <p class="sec-d">A monolithic <strong>Bun process</strong> (ARM64 Mach-O) serves the React UI at <code>localhost:8765</code>. All subsystems run in the same process. The browser is purely a UI surface; no Electron, no asar bundle.</p>
+</div>
+<div class="dw">
+  <div class="dl">Full-stack diagram — animated data flows</div>
+  <svg viewBox="0 0 860 560" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="a0" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#2e4260"/></marker>
+    <marker id="a1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#00d4bc"/></marker>
+    <marker id="a2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#f0a020"/></marker>
+    <marker id="a3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#b070f0"/></marker>
+    <marker id="a4" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#58a0f8"/></marker>
+  </defs>
+  <!-- Browser -->
+  <rect x="20" y="14" width="820" height="58" rx="5" fill="#0c1118" stroke="#1c2a3e"/>
+  <rect x="20" y="14" width="3" height="58" fill="#00d4bc"/>
+  <text x="38" y="35" font-family="'JetBrains Mono'" font-size="9" fill="#2e4260" letter-spacing=".15em">BROWSER LAYER</text>
+  <text x="38" y="54" font-family="'JetBrains Mono'" font-size="13" font-weight="700" fill="#d4e5f2">localhost:8765 — React UI</text>
+  <text x="370" y="54" font-family="'JetBrains Mono'" font-size="10" fill="#6585a0">Chat · Artifacts · Plan Approval · Mol* 3D · Ketcher · Live App iframe</text>
+  <!-- Arrow browser→bun -->
+  <line x1="430" y1="72" x2="430" y2="94" stroke="#2e4260" stroke-width="1" marker-end="url(#a0)"/>
+  <text x="438" y="86" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260">WebSocket / HTTP</text>
+  <!-- BUN outer -->
+  <rect x="20" y="96" width="820" height="286" rx="5" fill="#0c1118" stroke="#1c2a3e"/>
+  <rect x="20" y="96" width="3" height="286" fill="#f0a020"/>
+  <text x="38" y="114" font-family="'JetBrains Mono'" font-size="9" fill="#2e4260" letter-spacing=".15em">BUN PROCESS — com.anthropic.operon (ARM64 Mach-O)</text>
+  <!-- Agent harness -->
+  <rect x="36" y="122" width="390" height="248" rx="5" fill="#101820" stroke="#283d58"/>
+  <text x="52" y="139" font-family="'JetBrains Mono'" font-size="9" fill="#f0a020" letter-spacing=".12em">AGENT HARNESS (TypeScript)</text>
+  <!-- Agent boxes -->
+  <rect x="52" y="148" width="140" height="30" rx="3" fill="#07090d" stroke="#1c3a2e"/>
+  <text x="122" y="163" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#00d4bc" text-anchor="middle">OPERON</text>
+  <text x="122" y="174" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">primary agent</text>
+  <rect x="204" y="148" width="100" height="30" rx="3" fill="#07090d" stroke="#2a1840"/>
+  <text x="254" y="163" font-family="'JetBrains Mono'" font-size="11" font-weight="700" fill="#b070f0" text-anchor="middle">REVIEWER</text>
+  <text x="254" y="174" font-family="'JetBrains Mono'" font-size="8" fill="#4a2870" text-anchor="middle">thinking:false</text>
+  <rect x="316" y="148" width="104" height="30" rx="3" fill="#07090d" stroke="#2a1840"/>
+  <text x="368" y="163" font-family="'JetBrains Mono'" font-size="11" font-weight="700" fill="#b070f0" text-anchor="middle">BOOKMARKER</text>
+  <text x="368" y="174" font-family="'JetBrains Mono'" font-size="8" fill="#4a2870" text-anchor="middle">0–2 quote spans</text>
+  <!-- Harness details -->
+  <text x="52" y="200" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" letter-spacing=".1em">SYSTEM PROMPT</text>
+  <text x="52" y="213" font-family="'JetBrains Mono'" font-size="9.5" fill="#6585a0">identity + working_style + RULES_* (8 sections) + BM25 skills</text>
+  <text x="52" y="232" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" letter-spacing=".1em">TOOLS</text>
+  <text x="52" y="245" font-family="'JetBrains Mono'" font-size="9.5" fill="#6585a0">python · r · repl · search_skills · skill · save_artifacts</text>
+  <text x="52" y="258" font-family="'JetBrains Mono'" font-size="9.5" fill="#6585a0">generate_plan · delegate · mcp_tool · edit_file · manage_envs</text>
+  <text x="52" y="277" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" letter-spacing=".1em">SCHEDULER</text>
+  <text x="52" y="290" font-family="'JetBrains Mono'" font-size="9.5" fill="#6585a0">routine_schedules → queued_user_messages (async turn injection)</text>
+  <text x="52" y="309" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" letter-spacing=".1em">SKILL DISCOVERY</text>
+  <text x="52" y="322" font-family="'JetBrains Mono'" font-size="9.5" fill="#6585a0">BM25 over keyword index → &lt;skill_discovery&gt; blocks per turn</text>
+  <text x="52" y="340" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" letter-spacing=".1em">SAFETY</text>
+  <text x="52" y="353" font-family="'JetBrains Mono'" font-size="9.5" fill="#6585a0">Biosecurity trajectory screener (separate Opus API call)</text>
+  <!-- Arrow harness→kernels -->
+  <line x1="426" y1="178" x2="446" y2="178" stroke="#00d4bc" stroke-width="1" marker-end="url(#a1)"/>
+  <!-- Kernel Pool -->
+  <rect x="448" y="122" width="376" height="118" rx="5" fill="#101820" stroke="#283d58"/>
+  <text x="464" y="139" font-family="'JetBrains Mono'" font-size="9" fill="#f0a020" letter-spacing=".12em">KERNEL POOL (subprocess — JSON-lines stdio protocol)</text>
+  <rect x="462" y="148" width="106" height="42" rx="3" fill="#07090d" stroke="#1c3a2e"/>
+  <text x="515" y="164" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#00d4bc" text-anchor="middle">python</text>
+  <text x="515" y="180" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">sandboxed · science libs</text>
+  <rect x="582" y="148" width="106" height="42" rx="3" fill="#07090d" stroke="#1c3a2e"/>
+  <text x="635" y="164" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#00d4bc" text-anchor="middle">r</text>
+  <text x="635" y="180" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">sandboxed · bioc libs</text>
+  <rect x="702" y="148" width="114" height="42" rx="3" fill="#07090d" stroke="#2a1840"/>
+  <text x="759" y="164" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#b070f0" text-anchor="middle">repl</text>
+  <text x="759" y="180" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">host SDK · stdlib-only</text>
+  <text x="464" y="212" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">CappedStringIO 1 MB · threading.Lock · wall_s / cpu_s / peak_rss_kb tracking</text>
+  <text x="464" y="226" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">sys._operon_protocol_lock · sys._operon_protocol_stdout for host.* RPC</text>
+  <!-- SQLite -->
+  <rect x="448" y="254" width="180" height="152" rx="5" fill="#101820" stroke="#283d58"/>
+  <text x="464" y="271" font-family="'JetBrains Mono'" font-size="9" fill="#f0a020" letter-spacing=".12em">SQLITE (~/.claude-science/)</text>
+  <text x="464" y="288" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">frames · artifacts · execution_log</text>
+  <text x="464" y="302" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">host_call_log · memories</text>
+  <text x="464" y="316" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">verification_checks · session_claims</text>
+  <text x="464" y="330" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">routine_schedules · managed_endpoints</text>
+  <text x="464" y="344" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">marketplace_sources · annotations</text>
+  <text x="464" y="358" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">safety_feedback · skill_license_assents</text>
+  <text x="464" y="375" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260">95 Drizzle ORM migrations (authoritative)</text>
+  <!-- MCP Servers -->
+  <rect x="644" y="254" width="200" height="152" rx="5" fill="#101820" stroke="#283d58"/>
+  <text x="660" y="271" font-family="'JetBrains Mono'" font-size="9" fill="#f0a020" letter-spacing=".12em">MCP SERVERS</text>
+  <text x="660" y="288" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">bio-tools (24 Python packages)</text>
+  <text x="660" y="302" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">ketcher-chemistry (Node.js)</text>
+  <text x="660" y="319" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" letter-spacing=".08em">TIER-1 ARCHITECTURE</text>
+  <text x="660" y="332" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">verbatim schemas.json captures</text>
+  <text x="660" y="346" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">gate.py license filter (14 tools)</text>
+  <text x="660" y="360" font-family="'JetBrains Mono'" font-size="9" fill="#6585a0">anyio.to_thread · threading.Lock</text>
+  <text x="660" y="374" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260">repl-only access via host.mcp()</text>
+  <!-- Animated flow: harness→SQLite -->
+  <line x1="240" y1="300" x2="446" y2="300" stroke="#f0a020" stroke-width="1" stroke-dasharray="6 4" opacity=".4" marker-end="url(#a2)">
+    <animate attributeName="stroke-dashoffset" from="80" to="0" dur="3s" repeatCount="indefinite"/>
+  </line>
+  <!-- Animated flow: repl→MCP -->
+  <line x1="816" y1="190" x2="816" y2="252" stroke="#b070f0" stroke-width="1" stroke-dasharray="6 4" opacity=".5" marker-end="url(#a3)">
+    <animate attributeName="stroke-dashoffset" from="80" to="0" dur="2.5s" repeatCount="indefinite"/>
+  </line>
+  <!-- Arrow bun→API -->
+  <line x1="430" y1="382" x2="430" y2="408" stroke="#2e4260" stroke-width="1" marker-end="url(#a0)"/>
+  <!-- Anthropic API -->
+  <rect x="20" y="410" width="820" height="130" rx="5" fill="#0c1118" stroke="#1c2a3e"/>
+  <rect x="20" y="410" width="3" height="130" fill="#58a0f8"/>
+  <text x="38" y="428" font-family="'JetBrains Mono'" font-size="9" fill="#2e4260" letter-spacing=".15em">ANTHROPIC API</text>
+  <rect x="38" y="438" width="188" height="82" rx="4" fill="#080c18" stroke="#1a2850"/>
+  <text x="132" y="468" font-family="'JetBrains Mono'" font-size="11" font-weight="700" fill="#58a0f8" text-anchor="middle">claude-opus-4-8</text>
+  <text x="132" y="484" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">Primary agent</text>
+  <text x="132" y="497" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">Biosecurity screener</text>
+  <text x="132" y="511" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">(separate API call, full trajectory)</text>
+  <rect x="238" y="438" width="188" height="82" rx="4" fill="#080c18" stroke="#1a2850"/>
+  <text x="332" y="468" font-family="'JetBrains Mono'" font-size="11" font-weight="700" fill="#58a0f8" text-anchor="middle">claude-haiku-4-5</text>
+  <text x="332" y="484" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">host.llm() default</text>
+  <text x="332" y="497" font-family="'JetBrains Mono'" font-size="8.5" fill="#2e4260" text-anchor="middle">lightweight kernel queries</text>
+  <rect x="438" y="438" width="188" height="82" rx="4" fill="#080c18" stroke="#1a2850"/>
+  <text x="532" y="462" font-family="'JetBrains Mono'" font-size="11" font-weight="700" fill="#b070f0" text-anchor="middle">REVIEWER agent</text>
+  <text x="532" y="478" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">enable_thinking: false</text>
+  <text x="532" y="491" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">72% token savings</text>
+  <text x="532" y="504" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">max_tool_result_chars: 256 KB</text>
+  <rect x="638" y="438" width="188" height="82" rx="4" fill="#080c18" stroke="#1a2850"/>
+  <text x="732" y="462" font-family="'JetBrains Mono'" font-size="11" font-weight="700" fill="#b070f0" text-anchor="middle">BOOKMARKER agent</text>
+  <text x="732" y="478" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">hill-climbed prompt</text>
+  <text x="732" y="491" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">0.537→0.796 dev score</text>
+  <text x="732" y="504" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">0–2 verbatim quotes / window</text>
+  </svg>
+</div>
+</section>
+
+<!-- ============================== AGENTS ============================== -->
+<section id="agents">
+<div class="sec-head">
+  <div class="sec-n">02 — AGENTS</div>
+  <h2 class="sec-t">Agent System</h2>
+  <p class="sec-d">Five built-in agents with full <code>metadata.yaml</code> configs. User-created profiles replace <code>identity_prompt</code> but inherit <code>working_style_prompt</code>, keeping behavioral rules intact.</p>
+</div>
+
+<div class="dw" style="margin-bottom:20px">
+  <div class="dl">Agent hierarchy diagram</div>
+  <svg viewBox="0 0 840 260" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="b0" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#2e4260"/></marker>
+    <marker id="b1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0L0,6L6,3z" fill="#00d4bc"/></marker>
+  </defs>
+  <!-- Root: OPERON -->
+  <rect x="310" y="20" width="220" height="60" rx="5" fill="#07090d" stroke="#1c3a2e" stroke-width="1.5"/>
+  <text x="420" y="44" font-family="'JetBrains Mono'" font-size="15" font-weight="700" fill="#00d4bc" text-anchor="middle">OPERON</text>
+  <text x="420" y="62" font-family="'JetBrains Mono'" font-size="9" fill="#2e4260" text-anchor="middle">primary · claude-opus-4-8 · trust: user</text>
+  <!-- Lines from OPERON -->
+  <line x1="420" y1="80" x2="420" y2="100" stroke="#2e4260" stroke-width="1"/>
+  <line x1="420" y1="100" x2="100" y2="100" stroke="#2e4260" stroke-width="1"/>
+  <line x1="420" y1="100" x2="740" y2="100" stroke="#2e4260" stroke-width="1"/>
+  <line x1="100" y1="100" x2="100" y2="118" stroke="#2e4260" stroke-width="1"/>
+  <line x1="280" y1="100" x2="280" y2="118" stroke="#2e4260" stroke-width="1"/>
+  <line x1="420" y1="100" x2="420" y2="118" stroke="#2e4260" stroke-width="1"/>
+  <line x1="560" y1="100" x2="560" y2="118" stroke="#2e4260" stroke-width="1"/>
+  <line x1="740" y1="100" x2="740" y2="118" stroke="#2e4260" stroke-width="1"/>
+  <!-- Arrow tips -->
+  <line x1="100" y1="116" x2="100" y2="118" stroke="#2e4260" stroke-width="1" marker-end="url(#b0)"/>
+  <line x1="280" y1="116" x2="280" y2="118" stroke="#2e4260" stroke-width="1" marker-end="url(#b0)"/>
+  <line x1="420" y1="116" x2="420" y2="118" stroke="#2e4260" stroke-width="1" marker-end="url(#b0)"/>
+  <line x1="560" y1="116" x2="560" y2="118" stroke="#2e4260" stroke-width="1" marker-end="url(#b0)"/>
+  <line x1="740" y1="116" x2="740" y2="118" stroke="#2e4260" stroke-width="1" marker-end="url(#b0)"/>
+  <!-- REVIEWER -->
+  <rect x="20" y="118" width="160" height="110" rx="5" fill="#07090d" stroke="#2a1840"/>
+  <text x="100" y="138" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#b070f0" text-anchor="middle">REVIEWER</text>
+  <text x="100" y="155" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">parallel checkpoint spawn</text>
+  <text x="100" y="172" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">thinking: false</text>
+  <text x="100" y="185" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">max_result: 256 KB</text>
+  <text x="100" y="198" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">verdicts: pass/warn/fail</text>
+  <text x="100" y="211" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">read-only (no exec tools)</text>
+  <text x="100" y="224" font-family="'JetBrains Mono'" font-size="7" fill="#1e2e40" text-anchor="middle">trust: kernel</text>
+  <!-- BOOKMARKER -->
+  <rect x="200" y="118" width="160" height="110" rx="5" fill="#07090d" stroke="#2a1840"/>
+  <text x="280" y="138" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#b070f0" text-anchor="middle">BOOKMARKER</text>
+  <text x="280" y="155" font-family="'JetBrains Mono'" font-size="8.5" fill="#4a2870" text-anchor="middle">parallel checkpoint spawn</text>
+  <text x="280" y="172" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">0–2 quotes per window</text>
+  <text x="280" y="185" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">60–250 chars verbatim</text>
+  <text x="280" y="198" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">dev: 0.537→0.796</text>
+  <text x="280" y="211" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">transcript_annotations table</text>
+  <text x="280" y="224" font-family="'JetBrains Mono'" font-size="7" fill="#1e2e40" text-anchor="middle">trust: kernel</text>
+  <!-- ONBOARDING -->
+  <rect x="340" y="118" width="160" height="110" rx="5" fill="#07090d" stroke="#3a2800"/>
+  <text x="420" y="138" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#f0a020" text-anchor="middle">ONBOARDING</text>
+  <text x="420" y="155" font-family="'JetBrains Mono'" font-size="8.5" fill="#6a4000" text-anchor="middle">internal: true</text>
+  <text x="420" y="172" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">first-run only</text>
+  <text x="420" y="185" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">thinking: false</text>
+  <text x="420" y="198" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">no compute tools</text>
+  <text x="420" y="211" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">6-step interview flow</text>
+  <text x="420" y="224" font-family="'JetBrains Mono'" font-size="7" fill="#1e2e40" text-anchor="middle">3 task proposals + perms widget</text>
+  <!-- USER PROFILES -->
+  <rect x="480" y="118" width="160" height="110" rx="5" fill="#07090d" stroke="#1a3a1e"/>
+  <text x="560" y="138" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#40d068" text-anchor="middle">USER PROFILES</text>
+  <text x="560" y="155" font-family="'JetBrains Mono'" font-size="8.5" fill="#1a4a20" text-anchor="middle">host.agents.create()</text>
+  <text x="560" y="172" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">replace identity_prompt</text>
+  <text x="560" y="185" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">inherit working_style</text>
+  <text x="560" y="198" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">UPPERCASE 2–32 chars</text>
+  <text x="560" y="211" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">unrestricted: full catalog</text>
+  <text x="560" y="224" font-family="'JetBrains Mono'" font-size="7" fill="#1e2e40" text-anchor="middle">trust: user</text>
+  <!-- BIOSECURITY screener (external) -->
+  <rect x="660" y="118" width="160" height="110" rx="5" fill="#07090d" stroke="#3a0a0a"/>
+  <text x="740" y="138" font-family="'JetBrains Mono'" font-size="12" font-weight="700" fill="#e86060" text-anchor="middle">BIOSEC SCREENER</text>
+  <text x="740" y="155" font-family="'JetBrains Mono'" font-size="8.5" fill="#6a1010" text-anchor="middle">separate API call</text>
+  <text x="740" y="172" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">reads full conversation</text>
+  <text x="740" y="185" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">10+ hazard axes</text>
+  <text x="740" y="198" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">composite trajectory</text>
+  <text x="740" y="211" font-family="'JetBrains Mono'" font-size="8" fill="#2e4260" text-anchor="middle">immune to framing</text>
+  <text x="740" y="224" font-family="'JetBrains Mono'" font-size="7" fill="#1e2e40" text-anchor="middle">claude-opus-4-8</text>
+  </svg>
+</div>
+</section>
+
+<!-- ============================== SYSTEM PROMPT ============================== -->
+<section id="prompt">
+<div class="sec-head">
+  <div class="sec-n">03 — SYSTEM PROMPT</div>
+  <h2 class="sec-t">System Prompt Assembly</h2>
+  <p class="sec-d">Composed dynamically at load time from named sections. Each RULES_* block is a separate string in the binary. Skill content injected per-turn via BM25 search.</p>
+</div>
+
+<div class="dw">
+  <div class="dl">Prompt layer stack — top to bottom composition order</div>
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:var(--surface2)">
+        <th style="padding:9px 16px;font:500 9px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--dim);text-align:left;border-bottom:1px solid var(--border);width:30px">#</th>
+        <th style="padding:9px 16px;font:500 9px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--dim);text-align:left;border-bottom:1px solid var(--border);width:200px">Section</th>
+        <th style="padding:9px 16px;font:500 9px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--dim);text-align:left;border-bottom:1px solid var(--border)">Content / Purpose</th>
+        <th style="padding:9px 16px;font:500 9px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--dim);text-align:left;border-bottom:1px solid var(--border);width:100px">Scope</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">1</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--teal)">identity_prompt</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">Who the agent is. Default: "You are Claude Science, a general-purpose scientific computing agent." <em>Fully replaced by user profiles.</em></td>
+        <td style="padding:11px 16px"><span class="tag t-teal">per-agent</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">2</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--teal)">working_style_prompt</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">How the agent works: plan-mode gate, artifact embedding rules, lab-notebook register (no emoji), no plumbing vocabulary in prose, inspect libraries before use, MCP only in repl, one logical step per cell. <em>Inherited by all profiles.</em></td>
+        <td style="padding:11px 16px"><span class="tag t-teal">inherited</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6);background:rgba(240,160,32,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">3</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--amber)">RULES_CORE</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">Tool call labeling conventions. Artifact embed syntax (double-brace artifact:VERSION_ID, or art_ID for stable refs). Closing response pattern: list only non-obvious deliverables.</td>
+        <td style="padding:11px 16px"><span class="tag t-amber">global</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6);background:rgba(240,160,32,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">4</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--amber)">RULES_SECURITY</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">Blast-radius minimization. Credential hygiene. Anti-prompt-injection. <code>get_user_email()</code> rules. Privilege escalation prevention.</td>
+        <td style="padding:11px 16px"><span class="tag t-amber">global</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6);background:rgba(232,96,96,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">5</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--red)">RULES_BIOSECURITY</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">10+ hazard axes: scale, stability, aerosolization, defeating safety controls, acquiring regulated precursors, novel variant design, and more. Establish sequence/structure identity before analysis. Most biological research proceeds at full speed — this is a narrow gate, not a blanket caution.</td>
+        <td style="padding:11px 16px"><span class="tag t-red">global · immune</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6);background:rgba(240,160,32,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">6</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--amber)">RULES_PERSONAL_HEALTH</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">Handling personal health data — distinguishes research-grade analysis from individual diagnostic interpretation.</td>
+        <td style="padding:11px 16px"><span class="tag t-amber">global</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6);background:rgba(240,160,32,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">7</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--amber)">RULES_CAPABILITY_GUIDANCE</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">When to search skills vs. answer from training knowledge directly — avoids unnecessary tool-call overhead for well-known facts.</td>
+        <td style="padding:11px 16px"><span class="tag t-amber">global</span></td>
+      </tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.6);background:rgba(240,160,32,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">8</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--amber)">RULES_CODE_EXECUTION</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">Default-to-artifacts. <code>fig.savefig()</code> not <code>plt.savefig()</code>. Checkpoint formats (parquet/HDF5/pickle/RDS/NPZ/Zarr). Kernel patterns. Print budget (~10 lines). One logical step per cell.</td>
+        <td style="padding:11px 16px"><span class="tag t-amber">global</span></td>
+      </tr>
+      <tr style="background:rgba(240,160,32,.03)">
+        <td style="padding:11px 16px;font:400 11px var(--mono);color:var(--dim)">9</td>
+        <td style="padding:11px 16px;font:700 13px var(--mono);color:var(--amber)">RULES_NETWORK_SANDBOX</td>
+        <td style="padding:11px 16px;font:300 13px var(--sans);color:var(--muted)">Allowlisted science API domains (NCBI, Ensembl, UniProt, RCSB PDB, EBI, Reactome, STRING, KEGG, etc). <code>request_network_access()</code> for anything else. MCP servers bypass the sandbox entirely.</td>
+        <td style="padding:11px 16px"><span class="tag t-amber">global</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div style="padding:16px 20px;border-top:1px solid var(--border);background:var(--surface2)">
+    <span class="tag t-teal">+</span>
+    <span style="font:400 12px var(--mono);color:var(--muted);margin-left:8px">&lt;skill_discovery&gt; blocks — injected per turn via BM25 search over the keyword index</span>
+    <br><br>
+    <span class="tag t-blue">+</span>
+    <span style="font:400 12px var(--mono);color:var(--muted);margin-left:8px">Trust trailer — varies per agent trust level (user / kernel / plugin)</span>
+  </div>
+</div>
+
+<div class="note" style="display:flex;gap:12px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:0 6px 6px 0;font-size:13px;color:var(--muted);margin-top:20px;line-height:1.6">
+  <span style="color:var(--amber);flex-shrink:0">&#9888;</span>
+  <span>User-created agent profiles <strong style="color:var(--text)">replace</strong> <code>identity_prompt</code> entirely but <strong style="color:var(--text)">inherit</strong> <code>working_style_prompt</code> unconditionally — this keeps capability framing separate from behavioral guidance, so a custom persona can't accidentally drop execution discipline.</span>
+</div>
+</section>
+
+<!-- ============================== KERNELS ============================== -->
+<section id="kernels">
+<div class="sec-head">
+  <div class="sec-n">04 — KERNELS</div>
+  <h2 class="sec-t">Kernel Architecture</h2>
+  <p class="sec-d">Three persistent kernel types form the execution substrate. Only <code>repl</code> can reach MCP servers, compute backends, or the internal database — this is the deliberate host/sandbox split.</p>
+</div>
+
+<div class="g3">
+  <div class="card" style="border-color:rgba(0,212,188,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+      <span style="font:700 20px var(--mono);color:var(--teal)">python</span>
+      <span class="tag t-teal">sandboxed</span>
+    </div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.1em;margin-bottom:8px">CAPABILITIES</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      NumPy, pandas, matplotlib, science libraries (BioPython, scikit-learn, etc).<br>
+      <code>host.artifacts()</code> · <code>host.llm()</code> for lightweight calls.
+    </div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.1em;margin:14px 0 8px">RESTRICTIONS</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      No MCP surface. Network allowlisted to science APIs only.
+    </div>
+  </div>
+
+  <div class="card" style="border-color:rgba(0,212,188,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+      <span style="font:700 20px var(--mono);color:var(--teal)">r</span>
+      <span class="tag t-teal">sandboxed</span>
+    </div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.1em;margin-bottom:8px">CAPABILITIES</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      Full R runtime plus Bioconductor packages (DESeq2, limma, edgeR, etc).
+    </div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.1em;margin:14px 0 8px">RESTRICTIONS</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      Identical sandbox to <code>python</code> — no MCP, same network allowlist.
+    </div>
+  </div>
+
+  <div class="card" style="border-color:rgba(176,112,240,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+      <span style="font:700 20px var(--mono);color:var(--purple)">repl</span>
+      <span class="tag t-purple">host SDK</span>
+    </div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.1em;margin-bottom:8px">CAPABILITIES</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      <code>host.mcp()</code> · <code>host.compute.*</code> · <code>host.query()</code> · <code>host.delegate()</code> · <code>host.agents.*</code> · <code>host.skills.*</code>
+    </div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.1em;margin:14px 0 8px">RESTRICTIONS</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      Stdlib-only (<code>python -I -S</code>) — no data-science libraries. Data passed via <code>./handoff/*.json</code>.
+    </div>
+  </div>
+</div>
+
+<div class="dw" style="margin-top:24px">
+  <div class="dl">Kernel protocol — JSON-lines over stdin/stdout (kernel_worker.py)</div>
+  <div style="padding:22px 24px">
+    <div class="g2" style="gap:24px">
+      <div>
+        <div style="font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">Request</div>
+        <pre style="font:400 12px/1.6 var(--mono);color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;overflow-x:auto">{
+  "id": "uuid",
+  "code": "df = pd.read_csv(...)"
+}</pre>
+      </div>
+      <div>
+        <div style="font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-bottom:10px">Response</div>
+        <pre style="font:400 12px/1.6 var(--mono);color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:14px 16px;overflow-x:auto">{
+  "id": "uuid", "stdout": "...", "stderr": "",
+  "error": null,
+  "trace": {"error_lineno": null},
+  "usage": {"wall_s": 0.42, "cpu_s": 0.38,
+            "peak_rss_kb": 81920}
+}</pre>
+      </div>
+    </div>
+    <div class="g3" style="margin-top:18px">
+      <div style="font:400 12px var(--mono);color:var(--muted)"><span style="color:var(--teal)">●</span> <strong style="color:var(--text)">CappedStringIO</strong> — 1 MB cap (256 B headroom for truncation marker)</div>
+      <div style="font:400 12px var(--mono);color:var(--muted)"><span style="color:var(--teal)">●</span> <strong style="color:var(--text)">sys._operon_protocol_lock</strong> — threading.Lock for protocol writes</div>
+      <div style="font:400 12px var(--mono);color:var(--muted)"><span style="color:var(--teal)">●</span> <strong style="color:var(--text)">sys._operon_protocol_stdout</strong> — SDK's RPC channel for host.* calls</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============================== SKILLS ============================== -->
+<section id="skills">
+<div class="sec-head">
+  <div class="sec-n">05 — SKILLS</div>
+  <h2 class="sec-t">Skill System</h2>
+  <p class="sec-d">29 built-in skills as <code>SKILL.md</code> files (YAML frontmatter + Markdown body). Discovered via BM25 keyword search and injected into agent context on demand — never preloaded in full.</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:0;align-items:center;margin-bottom:24px">
+  <div class="card">
+    <div style="font:700 12px var(--mono);color:var(--teal);margin-bottom:10px">1 — INDEX</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6">
+      All 29 skills indexed by name + keywords at startup. No content loaded yet — just the searchable index.
+    </div>
+  </div>
+  <div style="text-align:center;font-size:20px;color:var(--dim);padding:0 12px">→</div>
+  <div class="card">
+    <div style="font:700 12px var(--mono);color:var(--teal);margin-bottom:10px">2 — DISCOVER</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6">
+      Every turn, <code>search_skills</code> runs BM25 against the user's message. Top matches surface in a <code>&lt;skill_discovery&gt;</code> block.
+    </div>
+  </div>
+  <div style="text-align:center;font-size:20px;color:var(--dim);padding:0 12px">→</div>
+  <div class="card">
+    <div style="font:700 12px var(--mono);color:var(--teal);margin-bottom:10px">3 — LOAD</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6">
+      Agent calls <code>skill(name)</code> to pull the full SKILL.md body + assets into context only when needed.
+    </div>
+  </div>
+</div>
+
+<div class="g4" style="grid-template-columns:repeat(5,1fr)">
+  <div class="card" style="padding:14px 16px"><div style="font:700 12px var(--mono);color:var(--text)">self-awareness</div><div style="font:400 10px var(--mono);color:var(--dim);margin-top:4px">SQLite schema reference</div></div>
+  <div class="card" style="padding:14px 16px"><div style="font:700 12px var(--mono);color:var(--text)">customize</div><div style="font:400 10px var(--mono);color:var(--dim);margin-top:4px">host.agents.* SDK</div></div>
+  <div class="card" style="padding:14px 16px"><div style="font:700 12px var(--mono);color:var(--text)">remote-compute-modal</div><div style="font:400 10px var(--mono);color:var(--dim);margin-top:4px">9 GPU env definitions</div></div>
+  <div class="card" style="padding:14px 16px"><div style="font:700 12px var(--mono);color:var(--text)">skill-creator</div><div style="font:400 10px var(--mono);color:var(--dim);margin-top:4px">Eval / grading framework</div></div>
+  <div class="card" style="padding:14px 16px"><div style="font:700 12px var(--mono);color:var(--text)">indication-dossier</div><div style="font:400 10px var(--mono);color:var(--dim);margin-top:4px">7 reference files</div></div>
+</div>
+
+<div class="note" style="display:flex;gap:12px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--green);border-radius:0 6px 6px 0;font-size:13px;color:var(--muted);margin-top:20px;line-height:1.6">
+  <span style="color:var(--green);flex-shrink:0">&#10003;</span>
+  <span>Every built-in SKILL.md declares <code>license: Apache-2.0</code> in frontmatter — these are intentionally open-sourced by Anthropic as a reusable skill format, distinct from the fleet retrieval packages the MCP servers wrap (which remain closed).</span>
+</div>
+</section>
+
+<!-- ============================== MCP ============================== -->
+<section id="mcp">
+<div class="sec-head">
+  <div class="sec-n">06 — MCP SERVERS</div>
+  <h2 class="sec-t">MCP Server Integration</h2>
+  <p class="sec-d">24 Python science-data packages served through a single Tier-1 dispatcher (<code>bio-tools</code>), plus a standalone Node.js structure-editor server. Only reachable from the <code>repl</code> kernel via <code>host.mcp()</code>.</p>
+</div>
+
+<div class="g2" style="margin-bottom:24px">
+  <div class="card">
+    <div class="card-t">Tier-1 architecture</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      Every server embeds <strong style="color:var(--text)">verbatim schemas.json</strong> captured live from Anthropic's hosted connectors — tool names, params, and output shapes match exactly. Handlers are plain sync callables <code>(args) → str</code>, dispatched via <code>anyio.to_thread</code>.
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t">License gate (gate.py)</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      Reads <code>deferred.json</code> + <code>domains.json</code>. <strong style="color:var(--text)">Fails closed</strong> — unknown tool/domain names raise <code>RuntimeError</code> rather than silently passing. A fully-gated server refuses to start.
+    </div>
+  </div>
+</div>
+
+<div class="mcp-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px">
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">pubmed</div><div style="font:400 10px var(--mono);color:var(--dim)">7 tools</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">biorxiv</div><div style="font:400 10px var(--mono);color:var(--dim)">6 tools</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">europepmc</div><div style="font:400 10px var(--mono);color:var(--dim)">fulltext</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">crossref</div><div style="font:400 10px var(--mono);color:var(--dim)">citations</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">openalex</div><div style="font:400 10px var(--mono);color:var(--dim)">scholarly graph</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">ensembl</div><div style="font:400 10px var(--mono);color:var(--dim)">genomics</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">uniprot</div><div style="font:400 10px var(--mono);color:var(--dim)">proteins</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">rcsb_pdb</div><div style="font:400 10px var(--mono);color:var(--dim)">structures</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">chembl</div><div style="font:400 10px var(--mono);color:var(--dim)">bioactivity</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">clinicaltrials</div><div style="font:400 10px var(--mono);color:var(--dim)">trials</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">opentargets</div><div style="font:400 10px var(--mono);color:var(--dim)">target-disease</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">reactome</div><div style="font:400 10px var(--mono);color:var(--dim)">pathways</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">string_db</div><div style="font:400 10px var(--mono);color:var(--dim)">PPI networks</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">openfda</div><div style="font:400 10px var(--mono);color:var(--dim)">drug safety</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">geo_sra</div><div style="font:400 10px var(--mono);color:var(--dim)">omics datasets</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">cellxgene</div><div style="font:400 10px var(--mono);color:var(--dim)">single-cell</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">ucsc_genome</div><div style="font:400 10px var(--mono);color:var(--dim)">browser API</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">arxiv</div><div style="font:400 10px var(--mono);color:var(--dim)">preprints</div></div>
+  <div class="mcp-card" style="background:rgba(232,96,96,.06);border:1px solid rgba(232,96,96,.25);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--red)">kegg</div><div style="font:400 10px var(--mono);color:rgba(232,96,96,.6)">🔒 academic-only</div></div>
+  <div class="mcp-card" style="background:rgba(232,96,96,.06);border:1px solid rgba(232,96,96,.25);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--red)">cadd</div><div style="font:400 10px var(--mono);color:rgba(232,96,96,.6)">🔒 non-commercial</div></div>
+  <div class="mcp-card" style="background:rgba(232,96,96,.06);border:1px solid rgba(232,96,96,.25);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--red)">panglaodb</div><div style="font:400 10px var(--mono);color:rgba(232,96,96,.6)">🔒 unverified terms</div></div>
+  <div class="mcp-card" style="background:rgba(232,96,96,.06);border:1px solid rgba(232,96,96,.25);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--red)">cell_model_passports</div><div style="font:400 10px var(--mono);color:rgba(232,96,96,.6)">🔒 Sanger — no commercial</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">ror</div><div style="font:400 10px var(--mono);color:var(--dim)">funder lookup</div></div>
+  <div class="mcp-card" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--teal)">icd10_codes</div><div style="font:400 10px var(--mono);color:var(--dim)">CMS provenance</div></div>
+  <div class="mcp-card" style="background:var(--surface3);border:1px dashed var(--border2);border-radius:6px;padding:11px 13px"><div style="font:700 11px var(--mono);color:var(--purple)">ketcher-chemistry</div><div style="font:400 10px var(--mono);color:var(--dim)">Node.js · managed endpoint</div></div>
+</div>
+
+<div class="note" style="display:flex;gap:12px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:13px;color:var(--muted);margin-top:20px;line-height:1.6">
+  <span style="color:var(--red);flex-shrink:0">&#9888;</span>
+  <span><strong style="color:var(--text)">14 tools across 4 domains are license-gated</strong> — KEGG (academic-use-only upstream license), CADD (non-commercial only), PanglaoDB (unverified redistribution terms, 403s non-browser clients), and Sanger Cell Model Passports (prohibits commercial use without written consent). These lift only when legal clearance passes on the specific upstream license.</span>
+</div>
+</section>
+
+<!-- ============================== SCHEMA ============================== -->
+<section id="schema">
+<div class="sec-head">
+  <div class="sec-n">07 — DATABASE</div>
+  <h2 class="sec-t">SQLite Schema</h2>
+  <p class="sec-d">All session data lives in SQLite at <code>~/.claude-science/&lt;project&gt;</code>, built from 95 Drizzle ORM migrations. Agents query it read-only via <code>host.query()</code> in the <code>repl</code> kernel.</p>
+</div>
+
+<div class="g3" style="margin-bottom:24px">
+  <div class="card">
+    <div class="card-t">Query interface</div>
+    <pre style="font:400 11.5px/1.6 var(--mono);color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px 14px;margin-top:8px;overflow-x:auto">host.query(sql, params=[],
+  limit=None, df=False)
+→ {rows, columns,
+   truncated, reason}</pre>
+  </div>
+  <div class="card">
+    <div class="card-t">Limits</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      Default 200 rows (max 1000) · cells &gt;2000 chars clipped · ~100 KB total output cap · 5-second timeout · auto-scoped to current project
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-t">Denied tables</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+      <code>oauth_tokens</code>, <code>user_secrets</code>, <code>cloud_credentials</code> → use <code>host.credentials.*</code> instead
+    </div>
+  </div>
+</div>
+
+<div class="schema-group" style="margin-bottom:28px">
+  <div style="font:500 11px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:12px;display:flex;align-items:center;gap:10px">CORE CONVERSATION<span style="flex:1;height:1px;background:linear-gradient(to right,rgba(0,212,188,.3),transparent)"></span></div>
+  <div class="dw">
+    <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px">
+      <thead><tr style="background:var(--surface2)">
+        <th style="text-align:left;padding:8px 16px;color:var(--dim);font:400 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">Table</th>
+        <th style="text-align:left;padding:8px 16px;color:var(--dim);font:400 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">Purpose</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">frames</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">One row per agent frame (root conversation or delegated sub-agent). <code>context_data</code> holds full message history.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">frame_messages</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Per-message overflow table for pagination on large conversations.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">compaction_archives</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Pre-compaction message snapshots with summaries.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">notifications</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Parent ↔ child messages for sub-agent delegation.</td></tr>
+        <tr><td style="padding:9px 16px;color:var(--teal);font-weight:700">queued_user_messages</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Async message queue with dedup <code>intent_id</code> — feeds the scheduler.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="schema-group" style="margin-bottom:28px">
+  <div style="font:500 11px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--amber);margin-bottom:12px;display:flex;align-items:center;gap:10px">ARTIFACTS &amp; PROVENANCE<span style="flex:1;height:1px;background:linear-gradient(to right,rgba(240,160,32,.3),transparent)"></span></div>
+  <div class="dw">
+    <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px">
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--amber);font-weight:700;width:180px">artifacts</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">One row per file; multiple versions tracked via <code>latest_version_id</code>.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--amber);font-weight:700">artifact_versions</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Lineage (<code>lineage_messages</code>), dependency DAG, producing cell, environment snapshot.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--amber);font-weight:700">artifact_dependencies</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">DAG edges between artifact versions.</td></tr>
+        <tr><td style="padding:9px 16px;color:var(--amber);font-weight:700">annotations</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Unified store (merged from artifact + file annotations, migration 0085) keyed by <code>target_kind</code>/<code>target_key</code>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="schema-group">
+  <div style="font:500 11px var(--mono);letter-spacing:.15em;text-transform:uppercase;color:var(--purple);margin-bottom:12px;display:flex;align-items:center;gap:10px">VERIFICATION, MEMORY &amp; PLATFORM<span style="flex:1;height:1px;background:linear-gradient(to right,rgba(176,112,240,.3),transparent)"></span></div>
+  <div class="dw">
+    <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px">
+      <tbody>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700;width:180px">session_claims</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Falsifiable claims extracted for REVIEWER verification.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700">verification_checks</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">REVIEWER verdicts: pass / warn / fail / inconclusive.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700">transcript_annotations</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">BOOKMARKER output — verbatim quote spans, 60–250 chars.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700">memories / memory_categories</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Durable cross-session beliefs with <code>superseded_by</code> chain and user-defined categories.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700">routine_schedules</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Scheduled agent execution — <code>on_tick</code> code, interval, idle-streak detection.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700">managed_endpoints</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Skill-managed local processes — SHA-approved start/stop scripts.</td></tr>
+        <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--purple);font-weight:700">marketplace_sources</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">External skill sources, pinned SHA + license tracking.</td></tr>
+        <tr><td style="padding:9px 16px;color:var(--purple);font-weight:700">safety_feedback</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">User feedback on safety interventions, one per type per session.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</section>
+
+<!-- ============================== COMPUTE ============================== -->
+<section id="compute">
+<div class="sec-head">
+  <div class="sec-n">08 — COMPUTE</div>
+  <h2 class="sec-t">Compute Backends</h2>
+  <p class="sec-d">Three compute surfaces beyond the local kernel pool, unified under a <code>compute_provider</code> kernel kind with one-time approval cards.</p>
+</div>
+
+<div class="g3" style="margin-bottom:24px">
+  <div class="card">
+    <div style="font:700 14px var(--mono);color:var(--teal);margin-bottom:4px">SSH / SLURM</div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.08em;margin-bottom:12px">REMOTE HPC</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6;padding:10px 0;border-top:1px solid var(--border)">Non-blocking job submit + <code>wait_for_notification</code> pattern.</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6;padding:10px 0;border-top:1px solid var(--border)">Ledger pattern for environment discovery on first connect.</div>
+  </div>
+  <div class="card">
+    <div style="font:700 14px var(--mono);color:var(--teal);margin-bottom:4px">Modal (BYOC)</div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.08em;margin-bottom:12px">SERVERLESS GPU</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6;padding:10px 0;border-top:1px solid var(--border)">Dual-surface: job submission surface + <code>compute_provider</code> kernel for env setup.</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6;padding:10px 0;border-top:1px solid var(--border)">9 pinned GPU environment definitions (see below).</div>
+  </div>
+  <div class="card">
+    <div style="font:700 14px var(--mono);color:var(--teal);margin-bottom:4px">Container-via-bridge</div>
+    <div style="font:400 10px var(--mono);color:var(--dim);letter-spacing:.08em;margin-bottom:12px">GENERIC BYOC</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6;padding:10px 0;border-top:1px solid var(--border)">Generic adapter for other container-based compute providers.</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.6;padding:10px 0;border-top:1px solid var(--border)">Confined; same one-time approval card flow.</div>
+  </div>
+</div>
+
+<div class="dw">
+  <div class="dl">Modal GPU environments — skills/remote-compute-modal/envs/</div>
+  <table style="width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px">
+    <thead><tr style="background:var(--surface2)">
+      <th style="text-align:left;padding:8px 16px;color:var(--dim);font:400 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">Environment</th>
+      <th style="text-align:left;padding:8px 16px;color:var(--dim);font:400 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--border)">Stack</th>
+    </tr></thead>
+    <tbody>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">proteomics_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Chai-1, MMseqs2-GPU (SHA-pinned binary), ESM-2, ProteinMPNN (pinned commit) · torch 2.5.1 · CUDA 12.4</td></tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">proteomics_boltz_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Boltz-2 — isolated due to cuequivariance/CUDA-13 conflicts with the rest of the proteomics stack</td></tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">proteomics_jax_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">JAX stack (OpenFold)</td></tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">proteomics_rfd_diffdock_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">RFDiffusion + DiffDock</td></tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">genomics_evo2_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Evo2 genomic foundation model</td></tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">esmfold2_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">ESMFold2</td></tr>
+      <tr style="border-bottom:1px solid rgba(28,42,62,.5)"><td style="padding:9px 16px;color:var(--teal);font-weight:700">chemistry_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">Chemistry / cheminformatics stack</td></tr>
+      <tr><td style="padding:9px 16px;color:var(--teal);font-weight:700">singlecell_gpu.py</td><td style="padding:9px 16px;font:300 12px var(--sans);color:var(--muted)">scGPT / scVI single-cell foundation models</td></tr>
+    </tbody>
+  </table>
+</div>
+</section>
+
+<!-- ============================== BIOSECURITY ============================== -->
+<section id="biosec">
+<div class="sec-head">
+  <div class="sec-n">09 — SAFETY</div>
+  <h2 class="sec-t">Biosecurity Trajectory Screener</h2>
+  <p class="sec-d">A separate <code>claude-opus-4-8</code> API call reads the <strong style="color:var(--text)">full conversation</strong> and classifies composite intent — not just the current message. This catches multi-turn synthesis pathways where no single message would trigger a refusal.</p>
+</div>
+
+<div style="display:flex;align-items:flex-start;gap:0;overflow-x:auto;padding-bottom:8px">
+  <div style="min-width:150px;max-width:170px;flex-shrink:0">
+    <div class="card" style="text-align:center;padding:16px 14px">
+      <div style="font-size:22px;margin-bottom:6px">&#128172;</div>
+      <div style="font:700 11px var(--mono);color:var(--text);margin-bottom:4px">Full Transcript</div>
+      <div style="font:300 12px var(--sans);color:var(--muted);line-height:1.4">Entire conversation, all turns</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 8px;padding-top:46px;color:var(--dim);font-size:18px">→</div>
+  <div style="min-width:150px;max-width:170px;flex-shrink:0">
+    <div class="card" style="text-align:center;padding:16px 14px;border-color:rgba(232,96,96,.3)">
+      <div style="font-size:22px;margin-bottom:6px">&#128269;</div>
+      <div style="font:700 11px var(--mono);color:var(--red);margin-bottom:4px">Screener Call</div>
+      <div style="font:300 12px var(--sans);color:var(--muted);line-height:1.4">Separate Opus API call, composite trajectory read</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 8px;padding-top:46px;color:var(--dim);font-size:18px">→</div>
+  <div style="min-width:150px;max-width:170px;flex-shrink:0">
+    <div class="card" style="text-align:center;padding:16px 14px">
+      <div style="font-size:22px;margin-bottom:6px">&#9878;</div>
+      <div style="font:700 11px var(--mono);color:var(--text);margin-bottom:4px">Hazard Axis Match</div>
+      <div style="font:300 12px var(--sans);color:var(--muted);line-height:1.4">Scale, stability, aerosolization, etc.</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 8px;padding-top:46px;color:var(--dim);font-size:18px">→</div>
+  <div style="min-width:150px;max-width:170px;flex-shrink:0">
+    <div class="card" style="text-align:center;padding:16px 14px">
+      <div style="font-size:22px;margin-bottom:6px">&#9989;</div>
+      <div style="font:700 11px var(--mono);color:var(--text);margin-bottom:4px">YES / NO</div>
+      <div style="font:300 12px var(--sans);color:var(--muted);line-height:1.4">Classification + triggering axis returned</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;padding:0 8px;padding-top:46px;color:var(--dim);font-size:18px">→</div>
+  <div style="min-width:150px;max-width:170px;flex-shrink:0">
+    <div class="card" style="text-align:center;padding:16px 14px;border-color:rgba(240,160,32,.3)">
+      <div style="font-size:22px;margin-bottom:6px">&#128221;</div>
+      <div style="font:700 11px var(--mono);color:var(--amber);margin-bottom:4px">execution_log.detection</div>
+      <div style="font:300 12px var(--sans);color:var(--muted);line-height:1.4">Triggered cells recorded for audit</div>
+    </div>
+  </div>
+</div>
+
+<div class="g2" style="margin-top:24px">
+  <div class="card">
+    <div class="card-t">Baseline posture</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">Most biological research is routine — proceed at full speed. Sequence analysis, structure prediction, expression analysis, and drug discovery work all proceed without special consideration in the vast majority of cases.</div>
+  </div>
+  <div class="card">
+    <div class="card-t">Identity verification</div>
+    <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">For unknown sequences/structures: establish organism, characterization, and function before analysis. Unverifiable user assertions don't lower the assessment — there's no BLAST, mass spec, or IBC access inside the conversation.</div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-t">Hazard axes (non-exhaustive)</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+    <span class="tag t-red">Scale</span>
+    <span class="tag t-red">Stability</span>
+    <span class="tag t-red">Aerosolization</span>
+    <span class="tag t-red">Defeating safety controls</span>
+    <span class="tag t-red">Acquiring regulated precursors</span>
+    <span class="tag t-red">Novel variant design</span>
+    <span class="tag t-red">Enhanced transmissibility</span>
+    <span class="tag t-red">Host range expansion</span>
+  </div>
+</div>
+
+<div class="note" style="display:flex;gap:12px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--red);border-radius:0 6px 6px 0;font-size:13px;color:var(--muted);margin-top:20px;line-height:1.6">
+  <span style="color:var(--red);flex-shrink:0">&#9888;</span>
+  <span>Biosecurity rules are <strong style="color:var(--text)">immune to all trust levels</strong> — no framing, persona, or instruction override (user, profile, kernel, or plugin) can suppress this screener. See Trust Hierarchy below.</span>
+</div>
+</section>
+
+<!-- ============================== VERIFICATION ============================== -->
+<section id="verify">
+<div class="sec-head">
+  <div class="sec-n">10 — VERIFICATION</div>
+  <h2 class="sec-t">Verification Checkpoints</h2>
+  <p class="sec-d">At each checkpoint, REVIEWER and BOOKMARKER spawn <strong style="color:var(--text)">in parallel</strong> as separate frames — independent of the main agent's continued execution.</p>
+</div>
+
+<div class="g2">
+  <div class="dw">
+    <div class="dl">REVIEWER — claim verification</div>
+    <div style="padding:18px 20px">
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <span class="tag t-purple">enable_thinking: false</span>
+        <span class="tag t-green">72% token savings</span>
+      </div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7;margin-bottom:14px">
+        Extracts falsifiable claims into <code>session_claims</code>, then checks each against <code>verification_checks</code> with a strict verdict:
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <span class="tag t-green">pass</span>
+        <span class="tag t-amber">warn</span>
+        <span class="tag t-red">fail</span>
+        <span class="tag t-blue">inconclusive</span>
+      </div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+        <strong style="color:var(--text)">Drill-before-disposition rule:</strong> won't dismiss a claim without investigating. Domain recall is exempt from verification; external citation identifiers (PMIDs, DOIs) are checkable — not-found counts as a finding.
+      </div>
+    </div>
+  </div>
+  <div class="dw">
+    <div class="dl">BOOKMARKER — transcript annotation</div>
+    <div style="padding:18px 20px">
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <span class="tag t-purple">hill-climbed prompt</span>
+        <span class="tag t-teal">62 gold windows</span>
+      </div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7;margin-bottom:14px">
+        Returns 0–2 verbatim quote spans per conversation window, stored in <code>transcript_annotations</code>.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:10px"><div style="font:700 16px var(--mono);color:var(--teal)">0.537→0.796</div><div style="font:400 9px var(--mono);color:var(--dim);letter-spacing:.05em;margin-top:2px">DEV SCORE</div></div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:10px"><div style="font:700 16px var(--mono);color:var(--teal)">0.354→0.523</div><div style="font:400 9px var(--mono);color:var(--dim);letter-spacing:.05em;margin-top:2px">HOLDOUT SCORE</div></div>
+      </div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.7">
+        Quotes must be character-for-character verbatim (incl. markdown), 60–250 chars, one contiguous span. <strong style="color:var(--text)">"Most windows deserve 0 or 1."</strong>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ============================== TRUST ============================== -->
+<section id="trust">
+<div class="sec-head">
+  <div class="sec-n">11 — TRUST</div>
+  <h2 class="sec-t">Trust Hierarchy</h2>
+  <p class="sec-d">Instruction authority is strictly ranked. Higher levels can override lower levels' instructions, never the reverse — with one absolute exception.</p>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:0">
+  <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;overflow:hidden">
+    <div style="width:74px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:14px 8px;border-right:1px solid var(--border);background:var(--surface2)"><div style="font:700 20px var(--mono);color:var(--teal)">01</div></div>
+    <div style="flex:1;padding:14px 20px">
+      <div style="font:700 13px var(--mono);color:var(--teal);margin-bottom:4px">User instructions</div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.5">Direct messages in the conversation. Highest authority an agent will normally encounter.</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-bottom:none;overflow:hidden">
+    <div style="width:74px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:14px 8px;border-right:1px solid var(--border);background:var(--surface2)"><div style="font:700 20px var(--mono);color:var(--blue)">02</div></div>
+    <div style="flex:1;padding:14px 20px">
+      <div style="font:700 13px var(--mono);color:var(--blue);margin-bottom:4px">User-authored profiles</div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.5">Custom agent personas created via <code>host.agents.create()</code> — the user's own configuration, but below live conversational instructions.</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-bottom:none;overflow:hidden">
+    <div style="width:74px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:14px 8px;border-right:1px solid var(--border);background:var(--surface2)"><div style="font:700 20px var(--mono);color:var(--purple)">03</div></div>
+    <div style="flex:1;padding:14px 20px">
+      <div style="font:700 13px var(--mono);color:var(--purple);margin-bottom:4px">Kernel-code agents</div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.5">REVIEWER, BOOKMARKER, and other agents spawned from harness code rather than user action.</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:stretch;border:1px solid var(--border);border-radius:0 0 8px 8px;overflow:hidden">
+    <div style="width:74px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:14px 8px;border-right:1px solid var(--border);background:var(--surface2)"><div style="font:700 20px var(--mono);color:var(--amber)">04</div></div>
+    <div style="flex:1;padding:14px 20px">
+      <div style="font:700 13px var(--mono);color:var(--amber);margin-bottom:4px">Plugin agents</div>
+      <div style="font:300 13px var(--sans);color:var(--muted);line-height:1.5">Third-party or marketplace-imported agent configurations. Lowest instruction authority.</div>
+    </div>
+  </div>
+</div>
+
+<div class="note" style="display:flex;gap:12px;padding:16px 20px;background:rgba(232,96,96,.05);border:1px solid rgba(232,96,96,.25);border-left:4px solid var(--red);border-radius:0 8px 8px 0;font-size:14px;color:var(--text);margin-top:4px;line-height:1.7">
+  <span style="color:var(--red);flex-shrink:0;font-size:18px">&#9888;</span>
+  <span><strong>Biosecurity rules sit outside this hierarchy entirely.</strong> No level — including direct user instructions — can override the biosecurity trajectory screener. This is the one absolute exception to "higher overrides lower."</span>
+</div>
+</section>
+
+</main>
+</div>
+
+<script>
+// Active nav highlighting on scroll
+const sections = document.querySelectorAll('section');
+const navLinks = document.querySelectorAll('.nav-a');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.getAttribute('id');
+      navLinks.forEach(link => {
+        link.classList.toggle('on', link.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
