@@ -35,8 +35,12 @@ Claude Science is a macOS desktop application (bundle ID `com.anthropic.operon`)
 │  └─────────────────────────────────────────────────────┘ │
 │                                                          │
 │  MCP Servers (subprocess or remote HTTPS)               │
-│    bio-tools (Python, 24 servers)                        │
-│    ketcher-chemistry (Node.js, structure editor widget)  │
+│    bio-tools (Python, 24 servers, Tier-1 architecture)  │
+│    ketcher-chemistry (Node.js, managed endpoint)         │
+│                                                          │
+│  Scheduler (routine_schedules)                          │
+│    Fires agent turns on a timer; queues via             │
+│    queued_user_messages; managed via host SDK            │
 └──────────────────────────────────────────────────────────┘
                │ Anthropic API
 ┌──────────────▼──────────────┐

@@ -237,6 +237,109 @@ host.query("PRAGMA table_info(frames)")
 | `superseded_by` | FK to newer memory |
 | `last_surfaced_at` | |
 
+**`memory_categories`** — User-defined categories for memories (migration 0052)
+
+| Column | Description |
+|--------|-------------|
+| `name` | Category name (max 64 chars) |
+| `guidance` | Instructions for the memory extractor on what to file here |
+| `auto_recall` | Whether to surface these memories automatically |
+| `user_id` | Owner |
+
+**`transcript_annotations`** — Bookmarker output + user annotations on transcript blocks (migration 0038)
+
+| Column | Description |
+|--------|-------------|
+| `root_frame_id` | |
+| `message_uuid` | Which message the annotation anchors to |
+| `message_index` | Position in conversation |
+| `block_index` | Position within message (for multi-block messages) |
+| `source` | `agent` (BOOKMARKER) or `user` |
+| `tool_name` | Which tool call, if anchoring to a tool result |
+| `anchor_text` | The exact verbatim quote (60–250 chars per BOOKMARKER spec) |
+| `start_offset` | Char offset within block |
+| `end_offset` | |
+| `kind` | Annotation type |
+| `note` | Optional user note |
+
+**`frame_messages`** — Per-message row store for pagination (migration 0036)
+
+| Column | Description |
+|--------|-------------|
+| `frame_id` | |
+| `idx` | Message index |
+| `msg_json` | Full message JSON |
+
+An overflow table for `context_data._messages` when the conversation is large. Used for pagination rather than loading the full `context_data` BLOB.
+
+**`annotations`** — Unified annotation store for artifact versions and files (migration 0085, merged from `artifact_versions.annotations` and `file_annotations`)
+
+| Column | Description |
+|--------|-------------|
+| `target_kind` | `artifact`, `local`, `remote` |
+| `target_key` | `av:VERSION_ID` for artifact versions; `file:host:path` for files |
+| `label_idx` | Display index (0-based; rendered as ① ② … or (1) (2) …) |
+| `content_checksum` | SHA-256 of the annotated content at time of annotation |
+| `body` | JSON annotation object |
+
+**`queued_user_messages`** — Async message queue (migration 0060)
+
+| Column | Description |
+|--------|-------------|
+| `frame_id` | Target conversation frame |
+| `payload` | Message content JSON |
+| `intent_id` | Dedup key (unique) |
+| `state` | `queued` → `resolved` |
+| `resolved_at` | When picked up |
+
+Used by the scheduler (routine_schedules) and other async producers to enqueue messages that are processed after the current agent turn completes.
+
+**`session_concurrency`** — Per-session parallelism limits (migration 0093)
+
+| Column | Description |
+|--------|-------------|
+| `root_frame_id` | One row per root conversation |
+| `max_concurrent` | Maximum simultaneous sub-agent frames |
+
+**`routine_schedules`** — Scheduled agent execution (migration 0087) — see [scheduler.md](scheduler.md)
+
+**`safety_feedback`** — User feedback on safety interventions (migration 0095)
+
+| Column | Description |
+|--------|-------------|
+| `root_frame_id` | |
+| `user_id` | |
+| `type` | Feedback type (thumbs-down, appeal, etc.) |
+| `model` | Model that produced the intervention |
+| `reason` | User-provided reason |
+| `response_id` | ID of the specific response that triggered feedback |
+| `context_snapshot` | JSON snapshot of the conversation context |
+
+Unique constraint on `(root_frame_id, user_id, type)` — one feedback of each type per session per user.
+
+**`marketplace_sources`** — External skill sources (migration 0081) — see [marketplace.md](marketplace.md)
+
+**`skill_license_assents`** — Per-user license acceptance records (migration 0062)
+
+| Column | Description |
+|--------|-------------|
+| `resource_key` | Marketplace slug + skill name |
+| `skill_name` | |
+| `decision` | `accepted` or `declined` |
+| `notice_version` | Version of license notice shown |
+| `notice_text` | Full text of notice at assent time |
+
+**`managed_endpoints`** — Skill-managed local processes (migration 0102) — see [managed-endpoints.md](managed-endpoints.md)
+
+### Additional `frames` Columns (from later migrations)
+
+- **`aux_input_tokens`**, **`aux_output_tokens`**, **`aux_cache_read_tokens`**, **`aux_cache_write_tokens`**, **`aux_cost`** (migration 0073) — Token spend for secondary (aux) LLM calls within a frame: REVIEWER, BOOKMARKER, and other sub-agent calls that don't count toward the main agent's `input_tokens`/`output_tokens`.
+- **`token_class_usage`** — JSON breakdown of token usage by class.
+
+### Additional `execution_log` Columns (from later migrations)
+
+- **`detection`** (migration 0057) — If a biosecurity or policy screener triggered on this cell's execution, the detection record is stored here as JSON. Null for clean cells.
+
 ### Compute
 
 **`compute_usage`** — Remote compute jobs
